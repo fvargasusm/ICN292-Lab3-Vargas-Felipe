@@ -2,7 +2,7 @@
 # ICN292 - Laboratorio 3: Triage de devoluciones AndesHogar SpA (n8n)
 
 **Autor:** Felipe Vargas
-RUT (sin DV): 21.333.135, semilla S = 135, U = $65.000, D = 28 días
+**RUT** (sin DV): 21.333.135, semilla S = 135, U = $65.000, D = 28 días
 **Fecha:** 22 de septiembre de 2026
 **Curso:** ICN-292 Sistemas de Información para la Gestión, USM
 **Repositorio:** https://github.com/fvargasusm/ICN292-Lab3-Vargas-Felipe

@@ -1,0 +1,770 @@
+{
+  "name": "ICN292-Lab3-Vargas-Felipe-triage",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "devoluciones-135",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "02158413-d794-4cd5-9505-3f76484cc811",
+      "name": "Webhook devoluciones",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        272
+      ],
+      "webhookId": "andeshogar-devoluciones-135"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c1",
+                    "leftValue": "={{ $json.body.id_solicitud }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "INVALIDO_CAMPO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c2",
+                    "leftValue": "={{ $json.body.monto.toNumber() }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "lte"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "INVALIDO_MONTO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c3",
+                    "leftValue": "={{ $json.body.dias_desde_compra.toNumber() }}",
+                    "rightValue": 28,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "RECHAZO_PLAZO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c4",
+                    "leftValue": "={{ $json.body.estado_producto }}",
+                    "rightValue": "danado_por_uso",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "RECHAZO_ESTADO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c5",
+                    "leftValue": "={{ $json.body.monto.toNumber() }}",
+                    "rightValue": 65000,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "REVISION_MONTO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c6",
+                    "leftValue": "={{ $json.body.estado_producto }}",
+                    "rightValue": "con_fallas",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "REVISION_FALLA"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "APROBACION"
+        }
+      },
+      "id": "e50e595b-5c9d-4b91-b280-3882647b5e48",
+      "name": "Triage (Switch Rules)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -288,
+        272
+      ],
+      "notes": "Reglas 2 a 5 en orden de politica. Send data to all matching outputs DESMARCADA. Fallback = APROBACION. U=65000, D=28 (S=135)."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1a",
+              "name": "ruta",
+              "value": "DATOS_INVALIDOS",
+              "type": "string"
+            },
+            {
+              "id": "s1b",
+              "name": "motivo",
+              "value": "={{ ($json.body.id_solicitud || '') === '' ? 'Falta el campo id_solicitud' : 'El monto declarado no es mayor que cero' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "2218e6ce-564c-4334-9b0f-3cecbe774cb9",
+      "name": "Ruta DATOS_INVALIDOS",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s2a",
+              "name": "ruta",
+              "value": "RECHAZO",
+              "type": "string"
+            },
+            {
+              "id": "s2b",
+              "name": "motivo",
+              "value": "={{ ($json.body.dias_desde_compra || '0').toNumber() > 28 ? 'Fuera de plazo: ' + $json.body.dias_desde_compra + ' dias desde la compra, el maximo D es 28' : 'Producto danado por uso' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "9436b66c-0a48-4874-afb0-357122f3f3f8",
+      "name": "Ruta RECHAZO",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s3a",
+              "name": "ruta",
+              "value": "REVISION",
+              "type": "string"
+            },
+            {
+              "id": "s3b",
+              "name": "motivo",
+              "value": "={{ ($json.body.monto || '0').toNumber() > 65000 ? 'Monto ' + $json.body.monto + ' supera el umbral U de 65000' : 'Producto declarado con fallas' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "9fc46a12-578c-4b1d-a101-0a00f1effc45",
+      "name": "Ruta REVISION",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s4a",
+              "name": "ruta",
+              "value": "APROBACION",
+              "type": "string"
+            },
+            {
+              "id": "s4b",
+              "name": "motivo",
+              "value": "Cumple plazo, estado y monto: reembolso aprobado de inmediato",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "3f64f66d-1238-49b6-8d02-0d5076b8ff5f",
+      "name": "Ruta APROBACION",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        544
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ee2f3463-6321-4645-a827-220facb294e6",
+      "name": "Consolidar rutas",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        240,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://mindicador.cl/api",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "4357e323-c052-48d3-b431-83024f81e6c7",
+      "name": "Indicadores mindicador.cl",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        272
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "GET sin credenciales. Campo consumido: uf.valor (valor de la UF del dia en pesos)."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "id_solicitud",
+              "value": "={{ $('Consolidar rutas').item.json.body.id_solicitud }}",
+              "type": "string"
+            },
+            {
+              "id": "r2",
+              "name": "sku",
+              "value": "={{ $('Consolidar rutas').item.json.body.sku }}",
+              "type": "string"
+            },
+            {
+              "id": "r3",
+              "name": "monto",
+              "value": "={{ $('Consolidar rutas').item.json.body.monto }}",
+              "type": "string"
+            },
+            {
+              "id": "r4",
+              "name": "dias_desde_compra",
+              "value": "={{ $('Consolidar rutas').item.json.body.dias_desde_compra }}",
+              "type": "string"
+            },
+            {
+              "id": "r5",
+              "name": "estado_producto",
+              "value": "={{ $('Consolidar rutas').item.json.body.estado_producto }}",
+              "type": "string"
+            },
+            {
+              "id": "r6",
+              "name": "ruta",
+              "value": "={{ $('Consolidar rutas').item.json.ruta }}",
+              "type": "string"
+            },
+            {
+              "id": "r7",
+              "name": "motivo",
+              "value": "={{ $('Consolidar rutas').item.json.motivo }}",
+              "type": "string"
+            },
+            {
+              "id": "r8",
+              "name": "U_aplicado",
+              "value": "={{ 65000 }}",
+              "type": "number"
+            },
+            {
+              "id": "r9",
+              "name": "D_aplicado",
+              "value": "={{ 28 }}",
+              "type": "number"
+            },
+            {
+              "id": "r10",
+              "name": "uf_valor",
+              "value": "={{ $json.uf ? $json.uf.valor : null }}",
+              "type": "number"
+            },
+            {
+              "id": "r11",
+              "name": "monto_uf",
+              "value": "={{ $json.uf ? ($('Consolidar rutas').item.json.body.monto.toNumber() / $json.uf.valor).round(3) : null }}",
+              "type": "number"
+            },
+            {
+              "id": "r12",
+              "name": "fecha_registro",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "269483e2-fb00-4b5c-a0d3-1a28788646a8",
+      "name": "Registro (trazabilidad regla 7)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        688,
+        272
+      ],
+      "notes": "Regla 7: identificador, SKU, monto, ruta, motivo y los valores de U y D aplicados."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://httpbin.org/post",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ para: $('Consolidar rutas').item.json.body.email_cliente, asunto: 'Solicitud ' + $json.id_solicitud + ': ' + $json.ruta, cuerpo: 'Estimado cliente, su solicitud ' + $json.id_solicitud + ' fue clasificada como ' + $json.ruta + '. Motivo: ' + $json.motivo + '.' }) }}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "d8c33d35-ed65-41c6-95cc-795edf576860",
+      "name": "Notificacion al cliente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        272
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "Sustituto sin credenciales del proveedor de correo. En produccion se reemplaza por Send Email o Gmail."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Registro (trazabilidad regla 7)').item.json) }}",
+        "options": {}
+      },
+      "id": "2e055fc5-b709-40e0-ba2f-bae3044e3b79",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1328,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "10Orb-u_BV5uL82cZtMS4kL8Lk9pX_BiUVpf_shxSbp0",
+          "mode": "list",
+          "cachedResultName": "ICN292-Lab3-Registro",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10Orb-u_BV5uL82cZtMS4kL8Lk9pX_BiUVpf_shxSbp0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Registro",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10Orb-u_BV5uL82cZtMS4kL8Lk9pX_BiUVpf_shxSbp0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_solicitud": "={{ $json.id_solicitud }}",
+            "sku": "={{ $json.sku }}",
+            "monto": "={{ $json.monto }}",
+            "dias_desde_compra": "={{ $json.dias_desde_compra }}",
+            "motivo": "={{ $json.motivo }}",
+            "ruta": "={{ $json.ruta }}",
+            "U_aplicado": "={{ $json.U_aplicado }}",
+            "D_aplicado": "={{ $json.D_aplicado }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "id_solicitud",
+              "displayName": "id_solicitud",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sku",
+              "displayName": "sku",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "monto",
+              "displayName": "monto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "dias_desde_compra",
+              "displayName": "dias_desde_compra",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ruta",
+              "displayName": "ruta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "motivo",
+              "displayName": "motivo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "U_aplicado",
+              "displayName": "U_aplicado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "D_aplicado",
+              "displayName": "D_aplicado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        912,
+        272
+      ],
+      "id": "11e98b82-2d90-4edc-8e57-ef8d8cf03cca",
+      "name": "Guardar registro en planilla",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "i7ZDHIaGH12JC8th",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook devoluciones": {
+      "main": [
+        [
+          {
+            "node": "Triage (Switch Rules)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Triage (Switch Rules)": {
+      "main": [
+        [
+          {
+            "node": "Ruta DATOS_INVALIDOS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ruta DATOS_INVALIDOS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ruta RECHAZO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ruta RECHAZO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ruta REVISION",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ruta REVISION",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ruta APROBACION",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ruta DATOS_INVALIDOS": {
+      "main": [
+        [
+          {
+            "node": "Consolidar rutas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ruta RECHAZO": {
+      "main": [
+        [
+          {
+            "node": "Consolidar rutas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ruta REVISION": {
+      "main": [
+        [
+          {
+            "node": "Consolidar rutas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ruta APROBACION": {
+      "main": [
+        [
+          {
+            "node": "Consolidar rutas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar rutas": {
+      "main": [
+        [
+          {
+            "node": "Indicadores mindicador.cl",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Indicadores mindicador.cl": {
+      "main": [
+        [
+          {
+            "node": "Registro (trazabilidad regla 7)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registro (trazabilidad regla 7)": {
+      "main": [
+        [
+          {
+            "node": "Guardar registro en planilla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificacion al cliente": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar registro en planilla": {
+      "main": [
+        [
+          {
+            "node": "Notificacion al cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "c1e8a860-bffb-4458-b0fb-a2b9d3ffb44f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "13e162e678aef79a0ae806bc84d72038c14a84c18b8998cb0a6c0d58f0f37f07"
+  },
+  "nodeGroups": [],
+  "id": "U4DXpVVGk3JJWSuj",
+  "tags": []
+}

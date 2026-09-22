@@ -1,0 +1,348 @@
+{
+  "name": "ICN292-Lab3-Vargas-Felipe-resumen",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 20
+            }
+          ]
+        }
+      },
+      "id": "5dbc6d87-9881-4df7-86ea-18c1b6f3aa1e",
+      "name": "Schedule Trigger 20:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -688,
+        128
+      ],
+      "notes": "Corrida diaria al cierre de jornada. El canal e-commerce recibe solicitudes hasta la noche, por eso 20:00 y no antes."
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "10Orb-u_BV5uL82cZtMS4kL8Lk9pX_BiUVpf_shxSbp0",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Registro",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": []
+        },
+        "options": {}
+      },
+      "id": "c9176c4b-c6ee-4910-abea-cbe5c1e938c4",
+      "name": "Leer registro",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -464,
+        128
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "i7ZDHIaGH12JC8th",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "Always Output Data activado: si la planilla no tiene filas, el nodo entrega igual un item vacio y el flujo puede avisar que no hubo movimientos."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "h1",
+              "leftValue": "={{ $json.id_solicitud }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a2917a62-a0a8-4b57-a387-9adf41a282bd",
+      "name": "Hubo solicitudes?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -240,
+        128
+      ],
+      "notes": "Rama verdadera: hay filas. Rama falsa: dia sin solicitudes, se avisa igual en vez de terminar en silencio."
+    },
+    {
+      "parameters": {
+        "fieldsToSummarize": {
+          "values": [
+            {
+              "field": "id_solicitud"
+            },
+            {
+              "aggregation": "sum",
+              "field": "monto"
+            }
+          ]
+        },
+        "fieldsToSplitBy": "ruta",
+        "options": {}
+      },
+      "id": "f06b3906-2753-4956-bbb8-08dc14c2c03a",
+      "name": "Consolidar por ruta",
+      "type": "n8n-nodes-base.summarize",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "notes": "Agrupa por ruta: cuenta solicitudes y suma montos. Entrega una fila por ruta."
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "3c49fbf8-59dc-4fde-9976-0a97da216414",
+      "name": "Juntar en un item",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "notes": "El enunciado pide UN solo mensaje. Sin este nodo se enviaria uno por ruta."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m1",
+              "name": "fecha",
+              "value": "={{ $now.format('dd-MM-yyyy') }}",
+              "type": "string"
+            },
+            {
+              "id": "m2",
+              "name": "total_solicitudes",
+              "value": "={{ $json.data.map(r => r.count_id_solicitud).sum() }}",
+              "type": "number"
+            },
+            {
+              "id": "m3",
+              "name": "monto_total_dia",
+              "value": "={{ $json.data.map(r => r.sum_monto).sum() }}",
+              "type": "number"
+            },
+            {
+              "id": "m4",
+              "name": "detalle_por_ruta",
+              "value": "={{ $json.data.map(r => r.ruta + ': ' + r.count_id_solicitud + ' solicitudes por $' + r.sum_monto).join(' | ') }}",
+              "type": "string"
+            },
+            {
+              "id": "m5",
+              "name": "tasa_aprobacion_automatica",
+              "value": "={{ ((($json.data.find(r => r.ruta === 'APROBACION')?.count_id_solicitud || 0) / $json.data.map(r => r.count_id_solicitud).sum()) * 100).round(1) }}",
+              "type": "number"
+            },
+            {
+              "id": "m6",
+              "name": "mensaje",
+              "value": "={{ 'Resumen de devoluciones del ' + $now.format('dd-MM-yyyy') + '. Total: ' + $json.data.map(r => r.count_id_solicitud).sum() + ' solicitudes por $' + $json.data.map(r => r.sum_monto).sum() + '. Por ruta: ' + $json.data.map(r => r.ruta + ': ' + r.count_id_solicitud + ' solicitudes por $' + r.sum_monto).join(' | ') + '. Tasa de aprobacion automatica: ' + ((($json.data.find(r => r.ruta === 'APROBACION')?.count_id_solicitud || 0) / $json.data.map(r => r.count_id_solicitud).sum()) * 100).round(1) + '%.' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "742a299c-ce01-4e4e-96e8-42a9d5fea7d8",
+      "name": "Armar resumen del dia",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "v1",
+              "name": "fecha",
+              "value": "={{ $now.format('dd-MM-yyyy') }}",
+              "type": "string"
+            },
+            {
+              "id": "v2",
+              "name": "total_solicitudes",
+              "value": "={{ 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "v3",
+              "name": "mensaje",
+              "value": "={{ 'Resumen de devoluciones del ' + $now.format('dd-MM-yyyy') + '. No se recibieron solicitudes. El flujo de triage se ejecuto y el registro esta vacio: no hay pendientes de revision manual.' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "634bc10e-f637-4593-9f34-b18f61046a18",
+      "name": "Dia sin solicitudes",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        240
+      ],
+      "notes": "Sin esta rama, un dia sin movimientos termina en verde sin enviar nada y nadie distingue eso de un flujo caido."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://httpbin.org/post",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ para: 'servicio.cliente@andeshogar.cl', asunto: 'Resumen diario de devoluciones ' + $json.fecha, cuerpo: $json.mensaje }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "ee742ee8-36f3-4ee0-9c91-4f5602e3ab19",
+      "name": "Enviar resumen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        688,
+        128
+      ],
+      "notes": "Sustituto sin credenciales del proveedor de correo. On Error en Stop: si el resumen no se envia, la ejecucion debe quedar marcada como fallida."
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger 20:00": {
+      "main": [
+        [
+          {
+            "node": "Leer registro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer registro": {
+      "main": [
+        [
+          {
+            "node": "Hubo solicitudes?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hubo solicitudes?": {
+      "main": [
+        [
+          {
+            "node": "Consolidar por ruta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Dia sin solicitudes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar por ruta": {
+      "main": [
+        [
+          {
+            "node": "Juntar en un item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Juntar en un item": {
+      "main": [
+        [
+          {
+            "node": "Armar resumen del dia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar resumen del dia": {
+      "main": [
+        [
+          {
+            "node": "Enviar resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dia sin solicitudes": {
+      "main": [
+        [
+          {
+            "node": "Enviar resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "fd8e4e44-9d1d-4efb-8795-430070eca7b3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "13e162e678aef79a0ae806bc84d72038c14a84c18b8998cb0a6c0d58f0f37f07"
+  },
+  "nodeGroups": [],
+  "id": "x2mrGqIRgkyF53I6",
+  "tags": []
+}

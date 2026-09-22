@@ -1,0 +1,141 @@
+{
+  "name": "ICN292-Lab3-Vargas-Felipe-emisor",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "7a76b69d-d009-44f4-a8d9-b976ccb0fc82",
+      "name": "Trigger manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================================\n// MODO controla que lote se envia. Cambie el valor y ejecute de nuevo.\n//   'produccion' -> las 15 solicitudes del enunciado (Parte A)\n//   'frontera'   -> los dos casos limite de la Parte C punto 3\n//   'invalidas'  -> las tres entradas invalidas de la Parte C\n//   'imposibles' -> los dos casos que el flujo no puede resolver\n// ===================================================================\nconst MODO = 'produccion';\n\nconst produccion = [\n  { id_solicitud: 'DEV-1115', sku: 'AU-210', unidades: '1', monto: '19990',  dias_desde_compra: '3',  estado_producto: 'sin_abrir',       email_cliente: 'cliente1@example.cl' },\n  { id_solicitud: 'DEV-1116', sku: 'TE-330', unidades: '2', monto: '69980',  dias_desde_compra: '5',  estado_producto: 'abierto_sin_uso', email_cliente: 'cliente2@example.cl' },\n  { id_solicitud: 'DEV-1117', sku: 'HV-050', unidades: '1', monto: '24990',  dias_desde_compra: '12', estado_producto: 'con_fallas',      email_cliente: 'cliente3@example.cl' },\n  { id_solicitud: 'DEV-1118', sku: 'MW-150', unidades: '1', monto: '79990',  dias_desde_compra: '4',  estado_producto: 'sin_abrir',       email_cliente: 'cliente4@example.cl' },\n  { id_solicitud: 'DEV-1119', sku: 'PL-120', unidades: '1', monto: '45990',  dias_desde_compra: '25', estado_producto: 'danado_por_uso',  email_cliente: 'cliente5@example.cl' },\n  { id_solicitud: 'DEV-1120', sku: 'AS-260', unidades: '1', monto: '89990',  dias_desde_compra: '2',  estado_producto: 'con_fallas',      email_cliente: 'cliente6@example.cl' },\n  { id_solicitud: 'DEV-1121', sku: 'LV-330', unidades: '1', monto: '289990', dias_desde_compra: '9',  estado_producto: 'sin_abrir',       email_cliente: 'cliente7@example.cl' },\n  { id_solicitud: 'DEV-1122', sku: 'PL-120', unidades: '1', monto: '45990',  dias_desde_compra: '2',  estado_producto: 'sin_abrir',       email_cliente: 'cliente8@example.cl' },\n  { id_solicitud: 'DEV-1123', sku: 'AU-210', unidades: '2', monto: '39980',  dias_desde_compra: '15', estado_producto: 'danado_por_uso',  email_cliente: 'cliente9@example.cl' },\n  { id_solicitud: 'DEV-1124', sku: 'HV-050', unidades: '2', monto: '49980',  dias_desde_compra: '1',  estado_producto: 'abierto_sin_uso', email_cliente: 'cliente10@example.cl' },\n  { id_solicitud: 'DEV-1125', sku: 'TE-330', unidades: '1', monto: '34990',  dias_desde_compra: '22', estado_producto: 'sin_abrir',       email_cliente: 'cliente11@example.cl' },\n  { id_solicitud: 'DEV-1126', sku: 'MW-150', unidades: '1', monto: '79990',  dias_desde_compra: '8',  estado_producto: 'con_fallas',      email_cliente: 'cliente12@example.cl' },\n  { id_solicitud: 'DEV-C01',  sku: 'CB-010', unidades: '1', monto: '9990',   dias_desde_compra: '1',  estado_producto: 'sin_abrir',       email_cliente: 'control01@example.cl' },\n  { id_solicitud: 'DEV-C02',  sku: 'LV-330', unidades: '1', monto: '289990', dias_desde_compra: '2',  estado_producto: 'sin_abrir',       email_cliente: 'control02@example.cl' },\n  { id_solicitud: 'DEV-C03',  sku: 'MW-150', unidades: '1', monto: '79990',  dias_desde_compra: '29', estado_producto: 'abierto_sin_uso', email_cliente: 'control03@example.cl' }\n];\n\n// Parte C punto 3: monto exactamente igual a U y dias exactamente iguales a D.\n// Regla 6 (comparaciones inclusivas): ambas deben quedar DENTRO de lo aceptado.\nconst frontera = [\n  { id_solicitud: 'DEV-B01', sku: 'FR-001', unidades: '1', monto: '65000', dias_desde_compra: '5',  estado_producto: 'sin_abrir', email_cliente: 'frontera01@example.cl' },\n  { id_solicitud: 'DEV-B02', sku: 'FR-002', unidades: '1', monto: '29990', dias_desde_compra: '28', estado_producto: 'sin_abrir', email_cliente: 'frontera02@example.cl' }\n];\n\n// Parte C: tres entradas invalidas distintas.\nconst invalidas = [\n  { id_solicitud: '',         sku: 'IN-001', unidades: '1', monto: '25000', dias_desde_compra: '3', estado_producto: 'sin_abrir', email_cliente: 'invalida01@example.cl' },\n  { id_solicitud: 'DEV-I02',  sku: 'IN-002', unidades: '1', monto: '0',     dias_desde_compra: '3', estado_producto: 'sin_abrir', email_cliente: 'invalida02@example.cl' },\n  { id_solicitud: 'DEV-I03',  sku: 'IN-003', unidades: '1', monto: '-15000', dias_desde_compra: '3', estado_producto: 'sin_abrir', email_cliente: 'invalida03@example.cl' }\n];\n\n// Parte C punto 5: los dos casos que el flujo no puede resolver.\nconst imposibles = [\n  { id_solicitud: 'DEV-X01', sku: 'XX-001', unidades: '1', monto: 'veinte mil', dias_desde_compra: '3', estado_producto: 'sin_abrir', email_cliente: 'imposible01@example.cl' },\n  { id_solicitud: 'DEV-X02', sku: 'ZZ-999', unidades: '1', monto: '25000',     dias_desde_compra: '3', estado_producto: 'sin_abrir', email_cliente: 'imposible02@example.cl' }\n];\n\nconst lotes = { produccion, frontera, invalidas, imposibles };\nconst lote = lotes[MODO];\nif (!lote) throw new Error('MODO no reconocido: ' + MODO);\n\nreturn lote.map(s => ({ json: s }));"
+      },
+      "id": "864a8664-0306-4d16-ae6a-f03d32a53c72",
+      "name": "Cargas a enviar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "notes": "Cambie la constante MODO en la linea 8 para alternar entre los cuatro lotes."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://pipevargask.app.n8n.cloud/webhook/devoluciones-135",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 4000
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "2aa634c4-4be8-49da-a3ee-529aa5d479b4",
+      "name": "POST al webhook de triage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "Reemplace la URL por la de su webhook. /webhook-test/... para pruebas, /webhook/... para produccion. On Error en Continue para que una solicitud que hace fallar el triage no detenga el envio de las demas."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "x1",
+              "name": "enviado",
+              "value": "={{ $('Cargas a enviar').item.json.id_solicitud }}",
+              "type": "string"
+            },
+            {
+              "id": "x2",
+              "name": "ruta_devuelta",
+              "value": "={{ $json.ruta || 'SIN RESPUESTA - el triage fallo' }}",
+              "type": "string"
+            },
+            {
+              "id": "x3",
+              "name": "motivo_devuelto",
+              "value": "={{ $json.motivo || ($json.error ? $json.error.message : 'sin motivo') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ae83101f-230d-4e67-8e19-b702c2967230",
+      "name": "Resultado del envio",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger manually": {
+      "main": [
+        [
+          {
+            "node": "Cargas a enviar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargas a enviar": {
+      "main": [
+        [
+          {
+            "node": "POST al webhook de triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST al webhook de triage": {
+      "main": [
+        [
+          {
+            "node": "Resultado del envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "eab1ed07-13a6-4ddc-9387-cf56823a1508",
+  "meta": {
+    "instanceId": "13e162e678aef79a0ae806bc84d72038c14a84c18b8998cb0a6c0d58f0f37f07"
+  },
+  "nodeGroups": [],
+  "id": "HeWKbLfifMNxRDNB",
+  "tags": []
+}
